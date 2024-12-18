@@ -2,11 +2,19 @@
 
 These are personal WinDbg scripts used for various debugging tasks.
 
+To use these scripts in WinDBG,
+
+Ensure that the JS provider `jsprovider.dll` is loaded.
+
+```
+!load jsprovider.dll
+```
+
 ## CFG valid call targets
 
 It checks if a function is a valid call target and can be used to bypass CFG checks.
 
-To load in WinDBG,
+To load the script in WinDBG,
 
 ```
 .scriptload C:\windbg_ext\scripts\cfg.js
