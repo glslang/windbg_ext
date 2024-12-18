@@ -103,10 +103,25 @@ interface processInterface
 interface sessionInterface
 {
     Processes: processInterface[];
+    First(): any;
+    Attributes: {
+        Target: {
+            IsKernelTarget: boolean;
+        };
+    };
 }
 
 interface debuggerInterface
 {
+    Utility: {
+        Control: {
+            ExecuteCommand(command: string): any;
+        };
+    };
+    State: {
+        DebuggerVariables: any;
+        PseudoRegisters: any;
+    };
     Sessions: sessionInterface[];
 }
 
@@ -721,7 +736,14 @@ declare namespace host {
      * @param majorVersion The major API version supported by the script.
      * @param minorVersion An optional minor API version supported by the script.
      */
-    function apiVersionSupport(majorVersion: number, minorVersion?: number): any;
+    class apiVersionSupport {
+        /**
+         * Sets the supported JSProvider API version by the script.
+         * @param majorVersion The major API version supported by the script.
+         * @param minorVersion An optional minor API version supported by the script.
+         */
+        constructor(majorVersion: number, minorVersion?: number);
+    }
 
     /**
     * Creates an instance of a data model object. The model needs to have IConstructableConcept.
@@ -737,7 +759,15 @@ declare namespace host {
     * @param object The function to be associated with the alias name aliasName.
     * @param aliasName The function alias name.
     */
-    function functionAlias(object: any, aliasName: string): any;
+    class functionAlias {
+        /**
+         * Creates a function alias
+         *
+         * @param object The function to be associated with the alias name aliasName.
+         * @param aliasName The function alias name.
+         */
+        constructor(object: any, aliasName: string);
+    }
 
     /**
      * Sets the resource file name to be used when retrieving data via resourceLookup.
