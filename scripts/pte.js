@@ -27,6 +27,7 @@ const add = (x, y) => expr(x, `+`, y);
 const mod = (x, y) => expr(x, `%`, y);
 const eq = (x, y) => pop(system(`dx ${x} == ${y}`)) === `true` ? true : false
 const neq = (x, y) => pop(system(`dx ${x} != ${y}`)) === `true` ? true : false
+const IsArm64 = () => pop(system(".effmach")).toLowerCase().includes("arm64");
 
 function getModuleSymbolAddress(symbol)
 {
@@ -69,17 +70,45 @@ function calculatePteFromVa(address) {
 }
 
 function isUserPage(pteValue) {
-    ok(`Checking if page is user 0x${hex(pteValue)}`);
-    return eq(and(shr(pteValue, 6), 1), 1);
+    let userBit = IsArm64() ? 6 : 2;
+    return eq(and(shr(pteValue, userBit), 1), 1);
+}
+
+function isUserNoExecute(pteValue) {
+    return eq(and(shr(pteValue, 54), 1), 1);
+}
+
+function isPrivilegedNoExecute(pteValue) {
+    return eq(and(shr(pteValue, 53), 1), 1);
 }
 
 function showPteBits(va) {
-    return calculatePteFromVa(va);
+    let pteAddress = calculatePteFromVa(va);
+    let pteValue = u64(pteAddress);
+    ok(`Checking page 0x${hex(pteValue)}...`);
+    if (isUserPage(pteValue)) {
+        ok(`PTE: 0x${hex(pteValue)} is user`);
+    } else {
+        ok(`PTE: 0x${hex(pteValue)} is kernel`);
+    }
+    if (IsArm64()) {
+        if (isUserNoExecute(pteValue)) {
+            ok(`PTE: 0x${hex(pteValue)} is user no execute`);
+        } else {
+            ok(`PTE: 0x${hex(pteValue)} is user execute`);
+        }
+        if (isPrivilegedNoExecute(pteValue)) {
+            ok(`PTE: 0x${hex(pteValue)} is privileged no execute`);
+        } else {
+            ok(`PTE: 0x${hex(pteValue)} is privileged execute`);
+        }
+    }
 }
 
 function markPteAsUser(va) {
     let pteAddress = calculatePteFromVa(va);
     let pteValue = u64(pteAddress);
+    ok(`Checking page 0x${hex(pteValue)}...`);
     if (isUserPage(pteValue)) {
         warn(`Page is already marked as user`);
         return;
@@ -93,6 +122,7 @@ function markPteAsUser(va) {
 function markPteAsKernel(va) {
     let pteAddress = calculatePteFromVa(va);
     let pteValue = u64(pteAddress);
+    ok(`Checking page 0x${hex(pteValue)}...`);
     if (!isUserPage(pteValue)) {
         warn(`Page is already marked as kernel`);
         return;
@@ -103,12 +133,35 @@ function markPteAsKernel(va) {
     ok(`Marked page as kernel`);
 }
 
+function markPteAsPrivilegedExecute(va) {
+    let pteAddress = calculatePteFromVa(va);
+    let pteValue = u64(pteAddress);
+    ok(`Checking page 0x${hex(pteValue)}...`);
+    if (!isPrivilegedNoExecute(pteValue)) {
+        warn(`Page is already marked as privileged execute`);
+        return;
+    }
+    let newPteValue = and(pteValue, i64("0xFF8FFFFFFFFFFFFF"));
+    host.memory.writeMemoryValues(pteAddress, 1, [newPteValue], 8);
+    ok(`Marked page as privileged execute`);
+}
+
+function disableSmep(va) {
+    let pteAddress = calculatePteFromVa(va);
+    let pteValue = u64(pteAddress);
+    markPteAsKernel(va);
+    markPteAsPrivilegedExecute(va);
+    ok(`Disabled SMEP`);
+}
+
 function initializeScript()
 {
     return [
         new host.apiVersionSupport(1, 7),
         new host.functionAlias(showPteBits, "showptebits"),
         new host.functionAlias(markPteAsUser, "markpteasuser"),
-        new host.functionAlias(markPteAsKernel, "markpteaskernel")
+        new host.functionAlias(markPteAsKernel, "markpteaskernel"),
+        new host.functionAlias(IsArm64, "isarm64"),
+        new host.functionAlias(disableSmep, "disablesmep")
     ];
 }
