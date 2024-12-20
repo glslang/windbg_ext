@@ -32,6 +32,22 @@ with the usage,
 @$isvalidcalltarget("rpcrt4!NdrServerCall2") : true
 ```
 
+## PTE manipulation
+
+It allows manipulation of PTEs to disable SMEP.
+
+To load the script in WinDBG,
+
+```
+.scriptload C:\windbg_ext\scripts\pte.js
+```
+
+with the usage,
+
+```
+0:032> !disablesmep 0x12345678
+```
+
 ## References
 
 Makes use of template functions from https://github.com/hugsy/windbg_js_scripts.

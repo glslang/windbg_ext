@@ -113,8 +113,8 @@ function markPteAsUser(va) {
         warn(`Page is already marked as user`);
         return;
     }
-
-    let newPteValue = xor(pteValue, shl(1, 6));
+    let userBit = IsArm64() ? 6 : 2;
+    let newPteValue = xor(pteValue, shl(1, userBit));
     host.memory.writeMemoryValues(pteAddress, 1, [newPteValue], 8);
     ok(`Marked page as user`);
 }
@@ -127,8 +127,8 @@ function markPteAsKernel(va) {
         warn(`Page is already marked as kernel`);
         return;
     }
-
-    let newPteValue = and(pteValue, i64("0xFFFFFFFFFFFFFFBF"));
+    let mask = IsArm64() ? i64("0xFFFFFFFFFFFFFFBF") : i64("0xFFFFFFFFFFFFFFFB");
+    let newPteValue = and(pteValue, mask);
     host.memory.writeMemoryValues(pteAddress, 1, [newPteValue], 8);
     ok(`Marked page as kernel`);
 }
@@ -147,10 +147,12 @@ function markPteAsPrivilegedExecute(va) {
 }
 
 function disableSmep(va) {
-    let pteAddress = calculatePteFromVa(va);
-    let pteValue = u64(pteAddress);
-    markPteAsKernel(va);
-    markPteAsPrivilegedExecute(va);
+    if (IsArm64()) {
+        markPteAsKernel(va);
+        markPteAsPrivilegedExecute(va);
+    } else {
+        markPteAsKernel(va);
+    }
     ok(`Disabled SMEP`);
 }
 
