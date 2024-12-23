@@ -29,6 +29,11 @@ const eq = (x, y) => pop(system(`dx ${x} == ${y}`)) === `true` ? true : false
 const neq = (x, y) => pop(system(`dx ${x} != ${y}`)) === `true` ? true : false
 const IsArm64 = () => pop(system(".effmach")).toLowerCase().includes("arm64");
 
+function getWindowsVersion() {
+    let verInfo = system("vertarget").First();
+    return verInfo;
+}
+
 function getModuleSymbolAddress(symbol)
 {
     if (symbol.indexOf('!') === -1)
@@ -52,13 +57,17 @@ function getModuleSymbolAddress(symbol)
 function disassembleSymbol(symbol) {
     let address = getModuleSymbolAddress(symbol);
     if (address === null) {
-        host.diagnostics.debugLog(`Could not find symbol: ${symbol}\n`);
+        log(`Could not find symbol: ${symbol}\n`);
         return;
     }
 
+    let windowsVersion = getWindowsVersion();
+    let is23H2 = windowsVersion.includes("22621");
+    let skip = is23H2 ? 2 : 1;
+
     let disassembler = host.namespace.Debugger.Utility.Code.CreateDisassembler();
     let instructions = disassembler.DisassembleFunction(address).BasicBlocks.First().Instructions;
-    let loadBaseAddressInstruction = instructions.Skip(1).First();
+    let loadBaseAddressInstruction = instructions.Skip(skip).First();
     let baseAddress = loadBaseAddressInstruction.Operands[1].ImmediateValue;
     return hex(u64(baseAddress));
 }

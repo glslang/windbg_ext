@@ -117,6 +117,9 @@ interface debuggerInterface
         Control: {
             ExecuteCommand(command: string): any;
         };
+        Code: {
+            CreateDisassembler(): any;
+        };
     };
     State: {
         DebuggerVariables: any;
